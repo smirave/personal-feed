@@ -4,45 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Personal Feed AI Studio</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #060816;
-        --panel: #0f1428;
-        --panel-2: #171d33;
-        --border: #26304f;
-        --text: #f4f7ff;
-        --muted: #94a3b8;
-        --accent: #7c3aed;
-        --accent-2: #3b82f6;
-        --success: #22c55e;
-        --danger: #ef4444;
-      }
-      * { box-sizing: border-box; }
-      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top left, rgba(124,58,237,0.2), transparent 30%), var(--bg); color: var(--text); min-height: 100vh; }
-      .app-shell { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
-      .hero { background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(59,130,246,0.14)); border: 1px solid var(--border); border-radius: 24px; padding: 28px; box-shadow: 0 30px 70px rgba(2, 6, 23, 0.35); }
-      .hero h1 { margin: 0 0 10px; font-size: clamp(1.7rem, 3.2vw, 2.4rem); }
-      .hero p { margin: 0; color: var(--muted); max-width: 720px; line-height: 1.6; }
-      .panel { margin-top: 24px; background: rgba(15, 20, 40, 0.95); border: 1px solid var(--border); border-radius: 20px; padding: 24px; }
-      .controls { display: grid; gap: 16px; grid-template-columns: 1.3fr 0.7fr; }
-      select, textarea, button { width: 100%; border-radius: 14px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); padding: 12px 14px; font-size: 0.96rem; outline: none; }
-      select:focus, textarea:focus { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
-      button { cursor: pointer; font-weight: 600; transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease; }
-      button:hover { transform: translateY(-1px); }
-      button:disabled { opacity: 0.65; cursor: wait; }
-      .primary-btn { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; }
-      .status { margin-top: 14px; color: var(--muted); min-height: 24px; }
-      .status.success { color: var(--success); }
-      .status.error { color: var(--danger); }
-      .result-card { margin-top: 24px; border: 1px solid var(--border); border-radius: 20px; padding: 18px; background: rgba(7, 11, 24, 0.8); }
-      .result-card h3 { margin-top: 0; margin-bottom: 10px; }
-      .result-card pre { white-space: pre-wrap; word-break: break-word; background: rgba(15, 20, 40, 0.9); border-radius: 14px; padding: 14px; color: #e2e8f0; line-height: 1.6; border: 1px solid var(--border); }
-      .spinner { display: inline-flex; align-items: center; gap: 8px; }
-      .spinner i { width: 14px; height: 14px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent-2); animation: spin 0.8s linear infinite; }
-      @keyframes spin { to { transform: rotate(360deg); } }
-      @media (max-width: 760px) { .controls { grid-template-columns: 1fr; } }
-    </style>
+    <link rel="stylesheet" href="/static/form.css">
   </head>
   <body>
     <div class="app-shell">
@@ -72,74 +34,6 @@
         </div>
       </section>
     </div>
-    <script>
-      const promptSelect = document.getElementById('promptSelect');
-      const generateBtn = document.getElementById('generateBtn');
-      const extraContext = document.getElementById('extraContext');
-      const status = document.getElementById('status');
-      const resultCard = document.getElementById('resultCard');
-      const resultOutput = document.getElementById('resultOutput');
-      async function loadPrompts() {
-        status.className = 'status';
-        status.innerHTML = '<span class="spinner"><i></i>Loading prompts…</span>';
-        try {
-          const response = await fetch('/api/prompts');
-          if (!response.ok) throw new Error('Failed to load prompts');
-          const prompts = await response.json();
-          promptSelect.innerHTML = '';
-          if (!prompts.length) {
-            promptSelect.innerHTML = '<option value="">No prompts available</option>';
-            status.textContent = 'No prompt files were found.';
-            return;
-          }
-          prompts.forEach((prompt) => {
-            const option = document.createElement('option');
-            option.value = prompt.file;
-            option.textContent = prompt.name;
-            promptSelect.appendChild(option);
-          });
-          status.textContent = `Loaded ${prompts.length} prompt${prompts.length === 1 ? '' : 's'}.`;
-        } catch (error) {
-          status.className = 'status error';
-          status.textContent = error.message;
-        }
-      }
-      generateBtn.addEventListener('click', async () => {
-        const selectedPrompt = promptSelect.value;
-        if (!selectedPrompt) {
-          status.className = 'status error';
-          status.textContent = 'Please select a prompt before generating.';
-          return;
-        }
-        generateBtn.disabled = true;
-        status.className = 'status';
-        status.innerHTML = '<span class="spinner"><i></i>Generating content…</span>';
-        resultCard.style.display = 'none';
-        try {
-          const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt_file: selectedPrompt, extra_context: extraContext.value }) });
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.detail || 'Generation failed');
-          const posts = data.posts || [];
-          if (!posts.length) {
-            resultCard.style.display = 'block';
-            resultOutput.textContent = 'No posts were returned by the model.';
-            status.className = 'status success';
-            status.textContent = 'The generation request completed without returning posts.';
-            return;
-          }
-          const rendered = posts.map((post, index) => `${index + 1}. ${post.title || 'Untitled Post'}\n\n${post.text || post.summary || ''}`).join('\n\n---\n\n');
-          resultOutput.textContent = rendered;
-          resultCard.style.display = 'block';
-          status.className = 'status success';
-          status.textContent = `Generated ${posts.length} post${posts.length === 1 ? '' : 's'} successfully.`;
-        } catch (error) {
-          status.className = 'status error';
-          status.textContent = error.message;
-        } finally {
-          generateBtn.disabled = false;
-        }
-      });
-      loadPrompts();
-    </script>
+    <script src="/static/form.js"></script>
   </body>
 </html>
