@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus — Dev Stream</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Highlight.js -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<style>
+    :root {
+        --bg: #08080a;
+        --bg-secondary: #0f0f12;
+        --card-bg: #111114;
+        --card-hover: #151519;
+        --border: #1e1e22;
+        --border-hover: #2a2a30;
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        --text-muted: #6b7280;
+        
+        /* Dynamic Variables (Changed by Settings) */
+        --accent: #8b5cf6;
+        --accent-hover: #a78bfa;
+        --accent-glow: rgba(139, 92, 246, 0.15);
+        
+        --font-family: "Plus Jakarta Sans", sans-serif;
+        --font-size-base: 15px;
+        --card-padding: 24px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background-color: var(--bg);
+        font-family: var(--font-family);
+        font-size: var(--font-size-base);
+        color: var(--text-primary);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        transition: font-size 0.3s ease, font-family 0.3s ease;
+    }
+
+    /* Reading Progress Bar */
+    #progress-bar {
+        position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+        background: linear-gradient(90deg, var(--accent), #3b82f6);
+        z-index: 1000; box-shadow: 0 0 10px var(--accent);
+        transition: width 0.1s ease-out, background 0.4s ease;
+    }
+
+    /* Background Ambient Glow */
+    body::before {
+        content: ''; position: fixed; top: -10%; left: 30%;
+        width: 600px; height: 400px;
+        background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+        z-index: -1; pointer-events: none; transition: background 0.4s ease;
+    }
+
+    /* Layout */
+    .layout-container { display: flex; max-width: 1200px; margin: 0 auto; gap: 32px; padding: 0 24px; }
+
+    /* Sidebar */
+    .sidebar {
+        width: 240px; flex-shrink: 0; position: sticky; top: 0;
+        height: 100vh; padding: 32px 0; display: flex; flex-direction: column;
+        border-right: 1px solid var(--border);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; margin-bottom: 40px; letter-spacing: -0.5px; }
+    .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #3b82f6); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--accent-glow); transition: background 0.4s ease; }
+    
+    .nav-links { display: flex; flex-direction: column; gap: 4px; }
+    .nav-item {
+        display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+        color: var(--text-secondary); text-decoration: none; border-radius: 8px;
+        font-weight: 500; transition: all 0.2s ease; cursor: pointer; background: none; border: none;
+        font-family: inherit; font-size: inherit; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--card-bg); color: var(--text-primary); }
+    .nav-item.active { background: var(--accent-glow); color: var(--accent); }
+    .nav-item svg { width: 20px; height: 20px; transition: transform 0.2s ease; }
+    .nav-item:hover svg { transform: scale(1.1); }
+    
+    .sidebar-footer { margin-top: auto; padding: 16px 0; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); }
+
+    /* Main Content */
+    .main-content { flex: 1; max-width: 720px; padding: 32px 0; position: relative; min-height: 100vh; }
+
+    /* View Transitions */
+    .view { display: none; animation: viewFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+    .view.active { display: block; }
+    @keyframes viewFadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Top Bar */
+    .top-bar { position: sticky; top: 0; background: rgba(8, 8, 10, 0.8); backdrop-filter: blur(12px); padding: 16px 0; margin-bottom: 24px; z-index: 100; border-bottom: 1px solid var(--border); }
+    .page-title { font-size: 24px; font-weight: 800; margin-bottom: 16px; letter-spacing: -1px; }
+    
+    .search-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; transition: border-color 0.2s; }
+    .search-box:focus-within { border-color: var(--accent); }
+    .search-box input { background: transparent; border: none; outline: none; color: var(--text-primary); font-family: inherit; font-size: 15px; width: 100%; }
+
+    .filters { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-top: 12px; }
+    .filters::-webkit-scrollbar { display: none; }
+    .filter-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+    .filter-btn:hover { border-color: var(--border-hover); color: white; }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+    /* Feed & Card */
+    .feed { display: flex; flex-direction: column; gap: 24px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color 0.3s ease, transform 0.3s ease; opacity: 0; transform: translateY(20px); animation: cardIn 0.6s forwards cubic-bezier(0.16, 1, 0.3, 1); }
+    .card:hover { border-color: var(--border-hover); transform: translateY(-3px); }
+    @keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
+
+    .card-banner { height: 60px; position: relative; overflow: hidden; }
+    .card-banner::after { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E"); }
+
+    .card-content { padding: var(--card-padding); transition: padding 0.3s ease; }
+    
+    .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tag.cat { background: var(--accent-glow); color: var(--accent); }
+    .tag.diff { background: rgba(245, 158, 11, 0.1); color: #fcd34d; }
+    .tag.type { background: rgba(59, 130, 246, 0.1); color: #93c5fd; }
+
+    .post-stats { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; }
+    .stat-item { display: flex; align-items: center; gap: 4px; }
+    .stat-item svg { width: 14px; height: 14px; }
+
+    .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.5px; transition: font-size 0.3s; }
+    .summary { color: var(--text-secondary); font-size: 15px; margin-bottom: 16px; }
+    .content-text { color: #d1d5db; font-size: 14px; line-height: 1.7; margin-bottom: 20px; padding-left: 16px; border-left: 2px solid var(--border); }
+
+    /* Code Block */
+    .code-container { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
+    .code-header { background: #161b22; border-bottom: 1px solid #30363d; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-family: "JetBrains Mono", monospace; font-size: 12px; color: #8b949e; }
+    .file-info { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .lang-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .copy-btn { background: transparent; border: 1px solid #30363d; color: #8b949e; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; gap: 4px; }
+    .copy-btn:hover { background: #30363d; color: #fff; }
+    .copy-btn.copied { color: #3fb950; border-color: #3fb950; }
+    pre { margin: 0; padding: 16px; overflow-x: auto; }
+    pre, code { font-family: "JetBrains Mono", monospace !important; font-size: 13px !important; line-height: 1.6 !important; background: transparent !important; }
+
+    /* Footer Actions */
+    .card-footer { display: flex; align-items: center; gap: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .action-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s; padding: 4px 8px; border-radius: 6px; }
+    .action-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+    .action-btn.upvoted { color: #10b981; }
+    .action-btn svg { width: 18px; height: 18px; transition: transform 0.2s; }
+    .action-btn.upvoted svg { transform: scale(1.1); }
+    
+    .keywords { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+    .keyword { color: var(--accent); font-size: 12px; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+    .keyword:hover { text-decoration: underline; color: var(--accent-hover); }
+
+    /* Explore Categories Grid */
+    .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .cat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; }
+    .cat-card:hover { transform: translateY(-4px) scale(1.02); border-color: transparent; }
+    .cat-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--g1), var(--g2)); opacity: 0.15; transition: opacity 0.3s; z-index: 0; }
+    .cat-card:hover::before { opacity: 0.3; }
+    .cat-content { position: relative; z-index: 1; }
+    .cat-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--g1), var(--g2)); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 20px; }
+    .cat-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .cat-desc { font-size: 13px; color: var(--text-secondary); }
+    .cat-stat { font-size: 11px; color: var(--text-muted); margin-top: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Settings Page */
+    .settings-group { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+    .settings-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+    .setting-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Theme Swatches */
+    .swatches { display: flex; gap: 12px; }
+    .swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; position: relative; }
+    .swatch.active { border-color: white; transform: scale(1.1); }
+    .swatch::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid transparent; transition: border-color 0.2s; }
+    .swatch.active::after { border-color: var(--accent); }
+
+    /* Font Selectors */
+    .btn-group { display: flex; gap: 8px; background: var(--bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+    .btn-group button { background: transparent; border: none; color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; font-family: inherit; }
+    .btn-group button.active { background: var(--accent); color: white; }
+
+    /* Slider */
+    .slider { -webkit-appearance: none; width: 150px; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
+    .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--accent); border-radius: 50%; cursor: pointer; transition: transform 0.2s; }
+    .slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+    /* Loader */
+    .loader { text-align: center; padding: 60px 0; color: var(--text-muted); display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+        .sidebar { display: none; }
+        .layout-container { padding: 0 16px; }
+        .cat-grid { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+
+<body>
+
+<div style="position: fixed; top: 16px; right: 16px; z-index: 1000;">
+    <a href="/generate" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: rgba(139, 92, 246, 0.16); color: #f5e8ff; text-decoration: none; font-weight: 600; border: 1px solid rgba(139, 92, 246, 0.35); backdrop-filter: blur(10px);">✦ Open Generator</a>
+</div>
+
+<div id="progress-bar"></div>
+
+<div class="layout-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">⚡</div>
+            Nexus
+        </div>
+        <nav class="nav-links">
+            <button class="nav-item active" data-view="home" onclick="switchView('home', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                Home Feed
+            </button>
+            <button class="nav-item" data-view="explore" onclick="switchView('explore', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                Explore
+            </button>
+            <button class="nav-item" data-view="settings" onclick="switchView('settings', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Settings
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            Nexus AI v3.0<br>© 2024
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- HOME VIEW -->
+        <section id="view-home" class="view active">
+            <div class="top-bar">
+                <div class="page-title">Home Feed</div>
+                <div class="search-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="searchInput" placeholder="Search snippets, keywords..." oninput="applyFilters()">
+                </div>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+                    <button class="filter-btn" data-filter="python" onclick="setFilter('python', this)">Python</button>
+                    <button class="filter-btn" data-filter="javascript" onclick="setFilter('javascript', this)">JS</button>
+                    <button class="filter-btn" data-filter="hard" onclick="setFilter('hard', this)">Hard</button>
+                </div>
+            </div>
+            <div id="feed" class="feed">
+                <div class="loader"><div class="spinner"></div> Fetching stream...</div>
+            </div>
+        </section>
+
+        <!-- EXPLORE VIEW -->
+        <section id="view-explore" class="view">
+            <div class="page-title">Explore Categories</div>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Dive deep into specific domains. Click a category to filter your feed.</p>
+            <div class="cat-grid" id="catGrid"></div>
+        </section>
+
+        <!-- SETTINGS VIEW -->
+        <section id="view-settings" class="view">
+            <div class="page-title">Appearance & Settings</div>
+            
+            <div class="settings-group">
+                <div class="settings-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>
+                    Theme Color
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Accent Color</div>
+                        <div class="setting-desc">Change the app's primary highlight color.</div>
+                    </div>
+                    <div class="swatches" id="colorSwatches">
+                        <div class="swatch" style="background: #8b5cf6" onclick="setThemeColor('#8b5cf6', '#a78bfa', '#8b5cf615')"></div>
+                        <div class="swatch" style="background: #3b82f6" onclick="setThemeColor('#3b82f6', '#60a5fa', '#3b82f615')"></div>
+                        <div class="swatch" style="background: #10b981" onclick="setThemeColor('#10b981', '#34d399', '#10b98115')"></div>
+                        <div class="swatch" style="background: #f59e0b" onclick="setThemeColor('#f59e0b', '#fbbf24', '#f59e0b15')"></div>
+                        <div class="swatch" style="background: #ec4899" onclick="setThemeColor('#ec4899', '#f472b6', '#ec489915')"></div>
+                        <div class="swatch" style="background: #ef4444" onclick="setThemeColor('#ef4444', '#f87171', '#ef444415')"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                    Typography
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Font Family</div>
+                        <div class="setting-desc">Select the interface text style.</div>
+                    </div>
+                    <div class="btn-group" id="fontGroup">
+                        <button onclick="setFont('Plus Jakarta Sans', this)">Jakarta</button>
+                        <button onclick="setFont('Inter', this)">Inter</button>
+                        <button onclick="setFont('Poppins', this)">Poppins</button>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Text Size</div>
+                        <div class="setting-desc">Adjust base font size for readability.</div>
+                    </div>
+                    <input type="range" min="13" max="18" value="15" class="slider" id="sizeSlider" oninput="setFontSize(this.value)">
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    Layout
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Card Density</div>
+                        <div class="setting-desc">Switch between comfortable and compact views.</div>
+                    </div>
+                    <div class="btn-group">
+                        <button id="btnComfort" onclick="setDensity('24px', this)">Comfortable</button>
+                        <button id="btnCompact" onclick="setDensity('16px', this)">Compact</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script>
+    // --- Mock Data (For offline testing) ---
+    const MOCK_POSTS = [
+        {
+            category: "Cybersecurity", difficulty: "Hard", type: "Tutorial",
+            title: "Fuzzing CFG Parsers in Python", summary: "Learn how to break complex parsers using random inputs.",
+            text: "Control Flow Graphs are critical. If they crash, your analyzer crashes. Here's a quick script to generate random bytes and feed them to your parser.",
+            code: { language: "python", filename: "fuzz_cfg.py", content: "import os, subprocess, random\nfor i in range(5000):\n    data = bytes(random.getrandbits(8) for _ in range(random.randint(0,64)))\n    p = subprocess.run(['./cfgparse'], input=data, capture_output=True)\n    if p.returncode < 0:\n        open(f'crash_{i}.bin','wb').write(data)\n        print('crash', i, data[:16])\n" },
+            keywords: ["fuzzing", "python", "security", "cfg"]
+        },
+        {
+            category: "Web Dev", difficulty: "Easy", type: "Snippet",
+            title: "Debounce Function in JS", summary: "Limit how often a function fires.",
+            text: "Useful for search inputs. Wait until the user stops typing for 300ms before hitting the API.",
+            code: { language: "javascript", filename: "debounce.js", content: "function debounce(fn, delay) {\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn(...args), delay);\n  };\n}" },
+            keywords: ["javascript", "web", "performance"]
+        },
+        {
+            category: "AI/ML", difficulty: "Medium", type: "Guide",
+            title: "Building a Simple Neural Net", summary: "Understand the math behind layers.",
+            text: "No libraries, just pure math. We will implement forward and backward pass from scratch.",
+            keywords: ["ai", "ml", "python"]
+        }
+    ];
+
+    const API = "http://localhost:8000/posts";
+    let allPosts = [];
+    let activeFilter = 'all';
+
+    // --- View Routing ---
+    function switchView(viewId, btn) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(`view-${viewId}`).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        
+        window.scrollTo(0, 0);
+    }
+
+    // --- Settings Logic ---
+    function loadSettings() {
+        const color = localStorage.getItem('nx-color') || '#8b5cf6';
+        const hover = localStorage.getItem('nx-hover') || '#a78bfa';
+        const glow = localStorage.getItem('nx-glow') || '#8b5cf615';
+        const font = localStorage.getItem('nx-font') || 'Plus Jakarta Sans';
+        const size = localStorage.getItem('nx-size') || '15px';
+        const density = localStorage.getItem('nx-density') || '24px';
+
+        setThemeColor(color, hover, glow, true);
+        setFont(font, null, true);
+        setFontSize(size, true);
+        setDensity(density, null, true);
+    }
+
+    function setThemeColor(color, hover, glow, isInit) {
+        document.documentElement.style.setProperty('--accent', color);
+        document.documentElement.style.setProperty('--accent-hover', hover);
+        document.documentElement.style.setProperty('--accent-glow', glow);
+        
+        if(!isInit) {
+            localStorage.setItem('nx-color', color);
+            localStorage.setItem('nx-hover', hover);
+            localStorage.setItem('nx-glow', glow);
+        }
+
+        // Update active swatch
+        document.querySelectorAll('.swatch').forEach(s => {
+            s.classList.toggle('active', s.style.background === color || rgbToHex(s.style.backgroundColor) === color);
+        });
+    }
+
+    function rgbToHex(rgb) {
+        if(!rgb) return "";
+        const match = rgb.match(/\d+/g);
+        if(!match) return rgb;
+        return "#" + match.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+    }
+
+    function setFont(font, btn, isInit) {
+        document.documentElement.style.setProperty('--font-family', `"${font}", sans-serif`);
+        if(!isInit) localStorage.setItem('nx-font', font);
+        
+        document.querySelectorAll('#fontGroup button').forEach(b => {
+            b.classList.toggle('active', b.innerText.toLowerCase().includes(font.split(' ')[0].toLowerCase()));
+        });
+    }
+
+    function setFontSize(size, isInit) {
+        document.documentElement.style.setProperty('--font-size-base', `${size}px`);
+        if(!isInit) localStorage.setItem('nx-size', size);
+        if(!isInit) document.getElementById('sizeSlider').value = size;
+    }
+
+    function setDensity(padding, btn, isInit) {
+        document.documentElement.style.setProperty('--card-padding', padding);
+        if(!isInit) localStorage.setItem('nx-density', padding);
+        
+        const isCompact = padding === '16px';
+        document.getElementById('btnComfort').classList.toggle('active', !isCompact);
+        document.getElementById('btnCompact').classList.toggle('active', isCompact);
+    }
+
+    // --- Filtering & Rendering ---
+    function setFilter(filter, btn) {
+        activeFilter = filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allPosts.filter(post => {
+            let matchesFilter = true;
+            if (activeFilter !== 'all') {
+                matchesFilter = (
+                    (post.category && post.category.toLowerCase().includes(activeFilter)) ||
+                    (post.difficulty && post.difficulty.toLowerCase() === activeFilter) ||
+                    (post.code && post.code.language && post.code.language.toLowerCase() === activeFilter)
+                );
+            }
+            let matchesSearch = true;
+            if (searchTerm) {
+                const text = `${post.title} ${post.summary} ${post.text} ${(post.keywords || []).join(' ')}`.toLowerCase();
+                matchesSearch = text.includes(searchTerm);
+            }
+            return matchesFilter && matchesSearch;
+        });
+        renderPosts(filtered);
+    }
+
+    function renderPosts(postsToRender) {
+        const feed = document.getElementById("feed");
+        feed.innerHTML = "";
+
+        if (!postsToRender || postsToRender.length === 0) {
+            feed.innerHTML = `<div class="loader">No posts found.</div>`;
+            return;
+        }
+
+        postsToRender.forEach((post, index) => {
+            const card = document.createElement("article");
+            card.className = "card";
+            card.style.animationDelay = `${index * 0.1}s`;
+            
+            const c1 = `hsl(${Math.random() * 360}, 70%, 50%)`;
+            const c2 = `hsl(${Math.random() * 360}, 70%, 30%)`;
+
+            let tagsHtml = '<div class="tags">';
+            if (post.category) tagsHtml += `<span class="tag cat">${post.category}</span>`;
+            if (post.difficulty) tagsHtml += `<span class="tag diff">${post.difficulty}</span>`;
+            if (post.type) tagsHtml += `<span class="tag type">${post.type}</span>`;
+            tagsHtml += '</div>';
+
+            const codeHtml = renderCodeBlock(post.code);
+            const keywordsHtml = (post.keywords || [])
+                .map(x => `<a href="#" class="keyword">#${x}</a>`).join("");
+
+            const upvotes = Math.floor(Math.random() * 500) + 10;
+
+            card.innerHTML = `
+                <div class="card-banner" style="background: linear-gradient(135deg, ${c1}, ${c2});"></div>
+                <div class="card-content">
+                    <div class="meta-row">
+                        ${tagsHtml}
+                        <div class="post-stats">
+                            <span class="stat-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                ${Math.floor(Math.random()*50)+10}k
+                            </span>
+                            <span class="stat-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                ${Math.ceil((post.text || post.summary || "").split(' ').length / 200)} min
+                            </span>
+                        </div>
+                    </div>
+                    <h2 class="title">${post.title ?? "Untitled"}</h2>
+                    ${post.summary ? `<p class="summary">${post.summary}</p>` : ''}
+                    ${post.text ? `<div class="content-text">${post.text}</div>` : ''}
+                    ${codeHtml}
+                    <div class="card-footer">
+                        <button class="action-btn" onclick="toggleUpvote(this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                            <span>${upvotes}</span>
+                        </button>
+                        <button class="action-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            Discuss
+                        </button>
+                        <div class="keywords">${keywordsHtml}</div>
+                    </div>
+                </div>
+            `;
+            feed.appendChild(card);
+        });
+
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightElement(block);
+        });
+    }
+
+    function renderCodeBlock(codeData) {
+        if (!codeData) return "";
+        let language = 'python', filename = 'snippet.txt', content = '';
+        if (typeof codeData === 'string') { content = codeData; } 
+        else {
+            language = codeData.language || 'python';
+            filename = codeData.filename || 'code.snippet';
+            content = codeData.content || '';
+        }
+
+        const colors = { python: '#3572A5', javascript: '#f1e05a', typescript: '#3178c6', html: '#e34c26', rust: '#dea584' };
+        const dotColor = colors[(language || '').toLowerCase()] || '#8b949e';
+
+        return `
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="file-info">
+                        <div class="lang-dot" style="background: ${dotColor}"></div>
+                        <span>${filename}</span>
+                    </div>
+                    <button class="copy-btn" onclick="copyCode(this, ${JSON.stringify(content).replace(/"/g, '&quot;')})">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"></path></svg>
+                        Copy
+                    </button>
+                </div>
+                <pre><code class="language-${language}">${escapeHtml(content)}</code></pre>
+            </div>
+        `;
+    }
+
+    function renderCategories() {
+        const categories = [
+            { name: "Web Development", desc: "Frontend, Backend, APIs", icon: "🌐", posts: 124, c1: "#3b82f6", c2: "#1d4ed8" },
+            { name: "AI & Machine Learning", desc: "Models, Data, PyTorch", icon: "🧠", posts: 89, c1: "#8b5cf6", c2: "#6d28d9" },
+            { name: "Cybersecurity", desc: "Pentesting, Crypto, Fuzzing", icon: "🛡️", posts: 56, c1: "#ef4444", c2: "#b91c1c" },
+            { name: "DevOps & Cloud", desc: "Docker, K8s, AWS", icon: "☁️", posts: 73, c1: "#10b981", c2: "#047857" },
+            { name: "Data Science", desc: "Pandas, SQL, Visualization", icon: "📊", posts: 102, c1: "#f59e0b", c2: "#b45309" },
+            { name: "Systems Programming", desc: "Rust, C++, Go", icon: "⚙️", posts: 45, c1: "#ec4899", c2: "#be185d" }
+        ];
+        const grid = document.getElementById('catGrid');
+        grid.innerHTML = '';
+        categories.forEach((cat, i) => {
+            const card = document.createElement('div');
+            card.className = 'cat-card';
+            card.style.animationDelay = `${i * 0.1}s`;
+            card.style.setProperty('--g1', cat.c1);
+            card.style.setProperty('--g2', cat.c2);
+            card.innerHTML = `
+                <div class="cat-content">
+                    <div class="cat-icon">${cat.icon}</div>
+                    <div class="cat-title">${cat.name}</div>
+                    <div class="cat-desc">${cat.desc}</div>
+                    <div class="cat-stat">${cat.posts} Posts</div>
+                </div>
+            `;
+            card.onclick = () => {
+                switchView('home', document.querySelector('.nav-item[data-view="home"]'));
+                document.getElementById('searchInput').value = '';
+                setFilter('all', document.querySelector('.filter-btn[data-filter="all"]'));
+                // simulate filter by category keyword
+                setTimeout(() => {
+                    document.getElementById('searchInput').value = cat.name.split(' ')[0].toLowerCase();
+                    applyFilters();
+                }, 300);
+            };
+            grid.appendChild(card);
+        });
+    }
+
+    // --- Interactions ---
+    function toggleUpvote(btn) {
+        btn.classList.toggle('upvoted');
+        const countEl = btn.querySelector('span');
+        let count = parseInt(countEl.innerText);
+        countEl.innerText = btn.classList.contains('upvoted') ? count + 1 : count - 1;
+    }
+
+    function copyCode(btn, text) {
+        navigator.clipboard.writeText(text);
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.751.751 0 01.018-1.042.751.751 0 011.042-.018L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg> Copied!';
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"></path></svg> Copy';
+        }, 2000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // --- Progress Bar ---
+    window.addEventListener('scroll', () => {
+        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = (window.scrollY / scrollHeight) * 100;
+        document.getElementById('progress-bar').style.width = `${progress}%`;
+    });
+
+    // --- Init ---
+    async function loadPosts() {
+        try {
+            // Try fetching from real API, fallback to MOCK_POSTS
+            try {
+                const res = await fetch(API);
+                if (!res.ok) throw new Error();
+                allPosts = await res.json();
+            } catch (e) {
+                console.log("API not running, using mock data.");
+                allPosts = MOCK_POSTS;
+            }
+            
+            renderPosts(allPosts);
+            renderCategories();
+            loadSettings();
+
+        } catch (error) {
+            document.getElementById("feed").innerHTML = `<div class="loader">Error loading posts.</div>`;
+        }
+    }
+
+    loadPosts();
+</script>
+
+</body>
+</html>
