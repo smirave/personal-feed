@@ -89,6 +89,53 @@ class PostsRouteTests(unittest.TestCase):
             finally:
                 _close_db(db_path)
 
+    def test_prior_posts_memory_uses_topic_keywords(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "posts.db"
+            generator = ContentGenerator(prompt_manager=None, db_path=str(db_path))
+            try:
+                generator._persist_posts(
+                    [
+                        {
+                            "id": "post-3",
+                            "category": "Laravel",
+                            "title": "Avoiding N+1 queries",
+                            "type": "Guide",
+                            "difficulty": "Medium",
+                            "text": "Laravel eager loading helps avoid N+1 queries.",
+                            "summary": "Laravel memory",
+                            "keywords": ["laravel", "eloquent"],
+                            "duplicate_key": "dup-3",
+                            "novelty_score": 1,
+                            "confidence": 1,
+                            "reason": "",
+                            "source_suggestion": "",
+                        },
+                        {
+                            "id": "post-4",
+                            "category": "General",
+                            "title": "Unrelated topic",
+                            "type": "Guide",
+                            "difficulty": "Easy",
+                            "text": "Something completely different.",
+                            "summary": "No relevance",
+                            "keywords": ["other"],
+                            "duplicate_key": "dup-4",
+                            "novelty_score": 1,
+                            "confidence": 1,
+                            "reason": "",
+                            "source_suggestion": "",
+                        },
+                    ]
+                )
+
+                prior_posts = generator._get_prior_posts(["laravel"], limit=5)
+
+                self.assertEqual(len(prior_posts), 1)
+                self.assertEqual(prior_posts[0]["title"], "Avoiding N+1 queries")
+            finally:
+                _close_db(db_path)
+
 
 if __name__ == "__main__":
     unittest.main()

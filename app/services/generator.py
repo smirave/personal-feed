@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -46,8 +47,16 @@ class ContentGenerator:
             if extra_context:
                 prompt_text = f"{prompt_text}\n\nAdditional context:\n{extra_context}"
 
+            topic_keywords = self._extract_topic_keywords(prompt_file)
+            prior_posts = self._get_prior_posts(topic_keywords, limit=8)
             previous_keys = self._get_duplicate_keys()
-            prompt_text = f"{prompt_text}\n\nPrevious duplicate keys:\n{json.dumps(previous_keys, ensure_ascii=False)}\n\nDo not generate posts with the same or similar duplicate_key."
+            prompt_text = (
+                f"{prompt_text}\n\n"
+                f"Topic keywords: {', '.join(topic_keywords)}\n\n"
+                f"Relevant prior posts from the database:\n{json.dumps(prior_posts, ensure_ascii=False)}\n\n"
+                f"Previous duplicate keys:\n{json.dumps(previous_keys, ensure_ascii=False)}\n\n"
+                "Use these as memory. Avoid repeating the same ideas, titles, angles, keywords, or duplicate_key values."
+            )
 
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -99,6 +108,78 @@ class ContentGenerator:
             self.log_file.touch(exist_ok=True)
             with self.log_file.open("a", encoding="utf-8") as handle:
                 handle.write(f"[{timestamp}] {message}\n")
+
+    def _extract_topic_keywords(self, prompt_file: str) -> List[str]:
+        prompt_name = Path(prompt_file).stem.lower()
+        parts = [part for part in re.split(r"[^a-z0-9]+", prompt_name) if part]
+        keywords = []
+        for part in parts:
+            if part not in {"md", "txt", "prompt"}:
+                keywords.append(part)
+        return keywords or [prompt_name]
+
+    def _get_prior_posts(self, topic_keywords: List[str], limit: int = 8) -> List[Dict[str, Any]]:
+        if not self.db_path.exists():
+            return []
+
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.row_factory = sqlite3.Row
+            query_terms = [term for term in topic_keywords if term]
+            if not query_terms:
+                return []
+
+            placeholders = ", ".join("?" for _ in query_terms)
+            rows = conn.execute(
+                f"""
+                SELECT id, category, title, summary, text, keywords, duplicate_key
+                FROM posts
+                WHERE 1=0
+                """
+            )
+            rows.close()
+
+            sql = """
+                SELECT id, category, title, summary, text, keywords, duplicate_key
+                FROM posts
+                WHERE 1=1
+            """
+            params: List[Any] = []
+            for term in query_terms:
+                sql += " AND (lower(category) LIKE ? OR lower(title) LIKE ? OR lower(summary) LIKE ? OR lower(text) LIKE ? OR lower(keywords) LIKE ?)"
+                like_term = f"%{term}%"
+                params.extend([like_term] * 5)
+
+            sql += " ORDER BY rowid DESC LIMIT ?"
+            params.append(limit)
+
+            db_rows = conn.execute(sql, params).fetchall()
+        finally:
+            conn.close()
+
+        prior_posts: List[Dict[str, Any]] = []
+        for row in db_rows:
+            keywords_value = row["keywords"]
+            keywords: List[str] = []
+            if keywords_value:
+                try:
+                    keywords = json.loads(keywords_value)
+                except json.JSONDecodeError:
+                    keywords = []
+
+            prior_posts.append(
+                {
+                    "id": row["id"],
+                    "category": row["category"],
+                    "title": row["title"],
+                    "summary": row["summary"],
+                    "text": row["text"],
+                    "keywords": keywords,
+                    "duplicate_key": row["duplicate_key"],
+                }
+            )
+
+        return prior_posts
 
     def _get_duplicate_keys(self, limit: int = 500) -> List[str]:
         if not self.db_path.exists():
