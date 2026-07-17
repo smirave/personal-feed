@@ -1,29 +1,5 @@
 
-    // --- Mock Data (For offline testing) ---
-    const MOCK_POSTS = [
-        {
-            category: "Cybersecurity", difficulty: "Hard", type: "Tutorial",
-            title: "Fuzzing CFG Parsers in Python", summary: "Learn how to break complex parsers using random inputs.",
-            text: "Control Flow Graphs are critical. If they crash, your analyzer crashes. Here's a quick script to generate random bytes and feed them to your parser.",
-            code: { language: "python", filename: "fuzz_cfg.py", content: "import os, subprocess, random\nfor i in range(5000):\n    data = bytes(random.getrandbits(8) for _ in range(random.randint(0,64)))\n    p = subprocess.run(['./cfgparse'], input=data, capture_output=True)\n    if p.returncode < 0:\n        open(f'crash_{i}.bin','wb').write(data)\n        print('crash', i, data[:16])\n" },
-            keywords: ["fuzzing", "python", "security", "cfg"]
-        },
-        {
-            category: "Web Dev", difficulty: "Easy", type: "Snippet",
-            title: "Debounce Function in JS", summary: "Limit how often a function fires.",
-            text: "Useful for search inputs. Wait until the user stops typing for 300ms before hitting the API.",
-            code: { language: "javascript", filename: "debounce.js", content: "function debounce(fn, delay) {\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn(...args), delay);\n  };\n}" },
-            keywords: ["javascript", "web", "performance"]
-        },
-        {
-            category: "AI/ML", difficulty: "Medium", type: "Guide",
-            title: "Building a Simple Neural Net", summary: "Understand the math behind layers.",
-            text: "No libraries, just pure math. We will implement forward and backward pass from scratch.",
-            keywords: ["ai", "ml", "python"]
-        }
-    ];
-
-    const API = "http://localhost:8000/posts";
+    const API = "/api/posts";
     let allPosts = [];
     let activeFilter = 'all';
 
@@ -302,22 +278,16 @@
     // --- Init ---
     async function loadPosts() {
         try {
-            // Try fetching from real API, fallback to MOCK_POSTS
-            try {
-                const res = await fetch(API);
-                if (!res.ok) throw new Error();
-                allPosts = await res.json();
-            } catch (e) {
-                console.log("API not running, using mock data.");
-                allPosts = MOCK_POSTS;
-            }
-            
+            const res = await fetch(API);
+            if (!res.ok) throw new Error("Unable to load posts.");
+            allPosts = await res.json();
+
             renderPosts(allPosts);
             renderCategories();
             loadSettings();
 
         } catch (error) {
-            document.getElementById("feed").innerHTML = `<div class="loader">Error loading posts.</div>`;
+            document.getElementById("feed").innerHTML = `<div class="loader">Unable to load posts.</div>`;
         }
     }
 

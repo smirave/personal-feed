@@ -27,6 +27,12 @@ def list_prompts():
     return prompt_manager.list_prompts()
 
 
+@router.get("/posts")
+@router.get("/api/posts")
+def list_posts():
+    return generator.list_posts()
+
+
 @router.post("/api/generate")
 def generate_post(payload: GenerateRequest):
     try:

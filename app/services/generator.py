@@ -104,7 +104,8 @@ class ContentGenerator:
         if not self.db_path.exists():
             return []
 
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             rows = conn.execute(
                 """
                 SELECT duplicate_key
@@ -115,11 +116,85 @@ class ContentGenerator:
                 """,
                 (limit,),
             ).fetchall()
+        finally:
+            conn.close()
 
         return [row[0] for row in rows]
 
+    def list_posts(self) -> List[Dict[str, Any]]:
+        if not self.db_path.exists():
+            return []
+
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                SELECT
+                    id,
+                    category,
+                    subcategory,
+                    title,
+                    type,
+                    difficulty,
+                    text,
+                    code,
+                    summary,
+                    keywords,
+                    duplicate_key,
+                    novelty_score,
+                    confidence,
+                    reason,
+                    source_suggestion
+                FROM posts
+                ORDER BY rowid DESC
+                """
+            ).fetchall()
+        finally:
+            conn.close()
+
+        posts: List[Dict[str, Any]] = []
+        for row in rows:
+            post = {
+                "id": row["id"],
+                "category": row["category"],
+                "subcategory": row["subcategory"],
+                "title": row["title"],
+                "type": row["type"],
+                "difficulty": row["difficulty"],
+                "text": row["text"],
+                "summary": row["summary"],
+                "duplicate_key": row["duplicate_key"],
+                "novelty_score": row["novelty_score"],
+                "confidence": row["confidence"],
+                "reason": row["reason"],
+                "source_suggestion": row["source_suggestion"],
+            }
+            code_value = row["code"]
+            if code_value:
+                try:
+                    post["code"] = json.loads(code_value)
+                except json.JSONDecodeError:
+                    post["code"] = None
+            else:
+                post["code"] = None
+
+            keywords_value = row["keywords"]
+            if keywords_value:
+                try:
+                    post["keywords"] = json.loads(keywords_value)
+                except json.JSONDecodeError:
+                    post["keywords"] = []
+            else:
+                post["keywords"] = []
+
+            posts.append(post)
+
+        return posts
+
     def _persist_posts(self, posts: List[Dict[str, Any]]) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS posts(
@@ -184,3 +259,6 @@ class ContentGenerator:
                     for post in posts
                 ],
             )
+            conn.commit()
+        finally:
+            conn.close()
